@@ -254,6 +254,7 @@ func start(c *cli.Context) error {
 		return err
 	}
 
+	log.Info("Watching container tag: " + tag)
 	log.Info("First run: " + cron.Entries()[0].Schedule.Next(time.Now()).String())
 	cron.Start()
 
