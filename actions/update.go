@@ -5,11 +5,11 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/v2tec/watchtower/container"
+	"github.com/whefter/watchtower/container"
 )
 
 var (
-	letters  = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 )
 
 // Update looks at the running Docker containers to see if any of the images

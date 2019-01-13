@@ -3,15 +3,15 @@ package actions
 import (
 	"sort"
 
-	"github.com/v2tec/watchtower/container"
+	"github.com/whefter/watchtower/container"
 )
 
 // CheckPrereqs will ensure that there are not multiple instances of the
 // watchtower running simultaneously. If multiple watchtower containers are
 // detected, this function will stop and remove all but the most recently
 // started container.
-func CheckPrereqs(client container.Client, cleanup bool) error {
-	containers, err := client.ListContainers(container.WatchtowerContainersFilter)
+func CheckPrereqs(client container.Client, tag string, cleanup bool) error {
+	containers, err := client.ListContainers(container.BuildWatchtowerContainersFilter(tag))
 	if err != nil {
 		return err
 	}

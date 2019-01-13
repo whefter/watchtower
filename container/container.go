@@ -2,7 +2,6 @@ package container
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/docker/docker/api/types"
@@ -10,10 +9,10 @@ import (
 )
 
 const (
-	watchtowerLabel = "com.centurylinklabs.watchtower"
-	signalLabel     = "com.centurylinklabs.watchtower.stop-signal"
-	enableLabel     = "com.centurylinklabs.watchtower.enable"
-	zodiacLabel     = "com.centurylinklabs.zodiac.original-image"
+	watchtowerLabel = "de.whefter.watchtower"
+	signalLabel     = "de.whefter.watchtower.stop-signal"
+	tagLabel        = "de.whefter.watchtower.tag"
+	imageLabel      = "de.whefter.watchtower.original-image"
 )
 
 // NewContainer returns a new Container instance instantiated with the
@@ -53,8 +52,7 @@ func (c Container) ImageID() string {
 // container. If the original image was specified without a particular tag, the
 // "latest" tag is assumed.
 func (c Container) ImageName() string {
-	// Compatibility w/ Zodiac deployments
-	imageName, ok := c.containerInfo.Config.Labels[zodiacLabel]
+	imageName, ok := c.containerInfo.Config.Labels[imageLabel]
 	if !ok {
 		imageName = c.containerInfo.Config.Image
 	}
@@ -66,20 +64,15 @@ func (c Container) ImageName() string {
 	return imageName
 }
 
-// Enabled returns the value of the container enabled label and if the label
+// WatchtowerTag returns the value of the container tag label and if the label
 // was set.
-func (c Container) Enabled() (bool, bool) {
-	rawBool, ok := c.containerInfo.Config.Labels[enableLabel]
+func (c Container) WatchtowerTag() (string, bool) {
+	tagVal, ok := c.containerInfo.Config.Labels[tagLabel]
 	if !ok {
-		return false, false
+		return "", false
 	}
 
-	parsedBool, err := strconv.ParseBool(rawBool)
-	if err != nil {
-		return false, false
-	}
-
-	return parsedBool, true
+	return tagVal, true
 }
 
 // Links returns a list containing the names of all the containers to which
@@ -99,7 +92,7 @@ func (c Container) Links() []string {
 
 // IsWatchtower returns a boolean flag indicating whether or not the current
 // container is the watchtower container itself. The watchtower container is
-// identified by the presence of the "com.centurylinklabs.watchtower" label in
+// identified by the presence of the "de.whefter.watchtower" label in
 // the container metadata.
 func (c Container) IsWatchtower() bool {
 	val, ok := c.containerInfo.Config.Labels[watchtowerLabel]

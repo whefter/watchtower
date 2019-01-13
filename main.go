@@ -1,4 +1,4 @@
-package main // import "github.com/v2tec/watchtower"
+package main // import "github.com/whefter/watchtower"
 
 import (
 	"os"
@@ -11,9 +11,9 @@ import (
 	"github.com/robfig/cron"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
-	"github.com/v2tec/watchtower/actions"
-	"github.com/v2tec/watchtower/container"
-	"github.com/v2tec/watchtower/notifications"
+	"github.com/whefter/watchtower/actions"
+	"github.com/whefter/watchtower/container"
+	"github.com/whefter/watchtower/notifications"
 )
 
 // DockerAPIMinVersion is the version of the docker API, which is minimally required by
@@ -29,9 +29,9 @@ var (
 	scheduleSpec string
 	cleanup      bool
 	noRestart    bool
-	enableLabel  bool
+	tag          string
 	notifier     *notifications.Notifier
-	timeout		 time.Duration
+	timeout      time.Duration
 )
 
 func init() {
@@ -84,15 +84,15 @@ func main() {
 			EnvVar: "DOCKER_TLS_VERIFY",
 		},
 		cli.DurationFlag{
-			Name:	"stop-timeout",
-			Usage:	"timeout before container is forcefully stopped",
-			Value:	time.Second * 10,
-			EnvVar:	"WATCHTOWER_TIMEOUT",
+			Name:   "stop-timeout",
+			Usage:  "timeout before container is forcefully stopped",
+			Value:  time.Second * 10,
+			EnvVar: "WATCHTOWER_TIMEOUT",
 		},
-		cli.BoolFlag{
-			Name:   "label-enable",
-			Usage:  "watch containers where the com.centurylinklabs.watchtower.enable label is true",
-			EnvVar: "WATCHTOWER_LABEL_ENABLE",
+		cli.StringFlag{
+			Name:   "tag",
+			Usage:  "Watch containers with this value of the de.whefter.watchtower.tag label",
+			EnvVar: "WATCHTOWER_TAG",
 		},
 		cli.BoolFlag{
 			Name:  "debug",
@@ -200,7 +200,11 @@ func before(c *cli.Context) error {
 	if timeout < 0 {
 		log.Fatal("Please specify a positive value for timeout value.")
 	}
-	enableLabel = c.GlobalBool("label-enable")
+
+	tag = c.String("tag")
+	if len(tag) == 0 {
+		log.Fatal("Please specify a tag to check for on other containers")
+	}
 
 	// configure environment vars for client
 	err := envConfig(c)
@@ -215,13 +219,11 @@ func before(c *cli.Context) error {
 }
 
 func start(c *cli.Context) error {
-	names := c.Args()
-
-	if err := actions.CheckPrereqs(client, cleanup); err != nil {
+	if err := actions.CheckPrereqs(client, tag, cleanup); err != nil {
 		log.Fatal(err)
 	}
 
-	filter := container.BuildFilter(names, enableLabel)
+	tagFilter := container.BuildTagFilter(tag)
 
 	tryLockSem := make(chan bool, 1)
 	tryLockSem <- true
@@ -234,7 +236,7 @@ func start(c *cli.Context) error {
 			case v := <-tryLockSem:
 				defer func() { tryLockSem <- v }()
 				notifier.StartNotification()
-				if err := actions.Update(client, filter, cleanup, noRestart, timeout); err != nil {
+				if err := actions.Update(client, tagFilter, cleanup, noRestart, timeout); err != nil {
 					log.Println(err)
 				}
 				notifier.SendNotification()

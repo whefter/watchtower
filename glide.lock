@@ -1,5 +1,5 @@
-hash: 23bcd62f9352c61d3aebc85a59f7ebbfaf80bc0201f45037cdea65820673ddeb
-updated: 2018-03-01T13:21:55.8472118+01:00
+hash: 85bd6c97b645d18a86397c93cb744577d8edd765cbaeea74b57d18ad515e8183
+updated: 2019-01-13T14:04:23.6033654+01:00
 imports:
 - name: github.com/Azure/go-ansiterm
   version: 388960b655244e76e24c75f48631564eaefade62
@@ -119,8 +119,7 @@ imports:
 - name: github.com/Microsoft/go-winio
   version: fff283ad5116362ca252298cfc9b95828956d85d
 - name: github.com/opencontainers/runc
-  version: 9df8b306d01f59d3a8029be411de015b7304dd8f
-  repo: https://github.com/docker/runc.git
+  version: bbb17efcb4c0ab986407812a31ba333a7450064c
   subpackages:
   - libcontainer/configs
   - libcontainer/devices
@@ -144,14 +143,13 @@ imports:
 - name: github.com/sirupsen/logrus
   version: ba1b36c82c5e05c4f912a88eab0dcd91a171688f
 - name: github.com/spf13/cobra
-  version: a3c09249f1a24a9d951f2738fb9b9256b8b42fa5
-  repo: https://github.com/dnephin/cobra.git
+  version: 7547e83b2d85fd1893c7d76916f67689d761fecb
 - name: github.com/spf13/pflag
   version: dabebe21bf790f782ea4c7bbd2efc430de182afd
 - name: github.com/stretchr/objx
   version: cbeaeb16a013161a98496fad62933b1d21786672
 - name: github.com/stretchr/testify
-  version: 69483b4bd14f5845b5a1e55bca19e954e827f1d0
+  version: ffdc059bfe9ce6a4e144ba849dbedead332c6053
   subpackages:
   - assert
   - mock

@@ -10,7 +10,7 @@ RUN apk add --no-cache \
 # Image
 #
 FROM scratch
-LABEL "com.centurylinklabs.watchtower"="true"
+LABEL "de.whefter.watchtower"="true"
 
 # copy files from other containers
 COPY --from=alpine /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt

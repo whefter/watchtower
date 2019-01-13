@@ -1,11 +1,21 @@
-# Watchtower
+# `whefter/watchtower`
 
-[![Circle CI](https://circleci.com/gh/v2tec/watchtower.svg?style=shield)](https://circleci.com/gh/v2tec/watchtower)
-[![GoDoc](https://godoc.org/github.com/v2tec/watchtower?status.svg)](https://godoc.org/github.com/v2tec/watchtower)
-[![](https://images.microbadger.com/badges/image/v2tec/watchtower.svg)](https://microbadger.com/images/v2tec/watchtower "Get your own image badge on microbadger.com")
-[![Go Report Card](https://goreportcard.com/badge/github.com/v2tec/watchtower)](https://goreportcard.com/report/github.com/v2tec/watchtower)
+[![Circle CI](https://circleci.com/gh/whefter/watchtower.svg?style=shield)](https://circleci.com/gh/whefter/watchtower)
+[![GoDoc](https://godoc.org/github.com/whefter/watchtower?status.svg)](https://godoc.org/github.com/whefter/watchtower)
+[![](https://images.microbadger.com/badges/image/whefter/watchtower.svg)](https://microbadger.com/images/whefter/watchtower "Get your own image badge on microbadger.com")
+[![Go Report Card](https://goreportcard.com/badge/github.com/whefter/watchtower)](https://goreportcard.com/report/github.com/whefter/watchtower)
 
 A process for watching your Docker containers and automatically restarting them whenever their base image is refreshed.
+
+This fork of `v2tec/watchtower` allows the user to monitor containers with a specified
+label only, allowing multiple instances of `watchtower` to run at different intervals
+and manage different containers.
+
+This allows for convenient integration of a `watchtower` instance into `docker-compose` files which will
+manage those services only.
+
+The docker label prefix has been changed to prevent conflicts when running this
+container at the same time as `v2tec/watchtower`.
 
 ## Overview
 
@@ -19,25 +29,30 @@ For example, let's say you were running watchtower along with an instance of *ce
 $ docker ps
 CONTAINER ID   IMAGE                   STATUS          PORTS                    NAMES
 967848166a45   centurylink/wetty-cli   Up 10 minutes   0.0.0.0:8080->3000/tcp   wetty
-6cc4d2a9d1a5   v2tec/watchtower        Up 15 minutes                            watchtower
+6cc4d2a9d1a5   whefter/watchtower      Up 15 minutes                            watchtower
 ```
 
 Every few minutes watchtower will pull the latest *centurylink/wetty-cli* image and compare it to the one that was used to run the "wetty" container. If it sees that the image has changed it will stop/remove the "wetty" container and then restart it using the new image and the same `docker run` options that were used to start the container initially (in this case, that would include the `-p 8080:3000` port mapping).
 
 ## Usage
 
-Watchtower is itself packaged as a Docker container so installation is as simple as pulling the `v2tec/watchtower` image.
+Watchtower is itself packaged as a Docker container so installation is as simple as pulling the `whefter/watchtower` image.
 
 Since the watchtower code needs to interact with the Docker API in order to monitor the running containers, you need to mount */var/run/docker.sock* into the container with the -v flag when you run it.
 
-Run the `watchtower` container with the following command:
+Run the `watchtower` container with the following command to monitor all
+containers that also have the label `de.whefter.watchtower.tag=wordpress1`
 
 ```bash
 docker run -d \
   --name watchtower \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  v2tec/watchtower
+  --label=de.whefter.watchtower.tag=wordpress1
+  whefter/watchtower --tag wordpress1
 ```
+
+Note that the `de.whefter.watchtower.tag` label is required on both the containers to monitor
+as well as the watchtower  instance itself.
 
 If pulling images from private Docker registries, supply registry authentication credentials with the environment variables `REPO_USER` and `REPO_PASS`
 or by mounting the host's docker config file into the container (at the root of the container filesystem `/`).
@@ -47,16 +62,19 @@ docker run -d \
   --name watchtower \
   -v /home/<user>/.docker/config.json:/config.json \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  v2tec/watchtower container_to_watch --debug
+  --label=de.whefter.watchtower.tag=wordpress1
+  whefter/watchtower --tag wordpress1 --debug
 ```
 
 If you mount the config file as described below, be sure to also prepend the url for the registry when starting up your watched image (you can omit the https://). Here is a complete docker-compose.yml file that starts up a docker container from a private repo at dockerhub and monitors it with watchtower. Note the command argument changing the interval to 30s rather than the default 5 minutes.
 
-```json
+```yaml
 version: "3"
 services:
   cavo:
     image: index.docker.io/<org>/<image>:<tag>
+    labels:
+      - "de.whefter.watchtower.tag=cavo"
     ports:
       - "443:3443"
       - "80:3080"
@@ -65,30 +83,39 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /root/.docker/config.json:/config.json
-    command: --interval 30
+    labels:
+      - "de.whefter.watchtower.tag=cavo"
+    command: --tag cavo --interval 30
 ```
 
 ### Arguments
 
-By default, watchtower will monitor all containers running within the Docker daemon to which it is pointed (in most cases this will be the local Docker daemon, but you can override it with the `--host` option described in the next section). However, you can restrict watchtower to monitoring a subset of the running containers by specifying the container names as arguments when launching watchtower.
+Watchtower has to be told which tag to monitor for on containers. This can be specified
+* either with the `--tag` commandline option
+* or the `WATCHTOWER_TAG` environment variable
+
+**Note** that the `watchtower` container itself **also** requires the `de.whefter.watchtower.tag` 
+label so that it can monitor itself.
+
+Also note that `watchtower` will detect if it is run twice (based on its tag) and kill all but the most
+recent instance. If it is run multiple times without tags, you might run into a scenario
+with instances updating each other, possibly causing trouble with small intervals.
 
 ```bash
 docker run -d \
   --name watchtower \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  v2tec/watchtower nginx redis
+  --label=de.whefter.watchtower.tag=wordpress1
+  whefter/watchtower --tag wordpress1
 ```
 
-In the example above, watchtower will only monitor the containers named "nginx" and "redis" for updates -- all of the other running containers will be ignored.
-
-When no arguments are specified, watchtower will monitor all running containers.
 
 ### Options
 
 Any of the options described below can be passed to the watchtower process by setting them after the image name in the `docker run` string:
 
 ```bash
-docker run --rm v2tec/watchtower --help
+docker run --rm whefter/watchtower --help
 ```
 
 * `--host, -h` Docker daemon socket to connect to. Defaults to "unix:///var/run/docker.sock" but can be pointed at a remote Docker host by specifying a TCP endpoint as "tcp://hostname:port". The host value can also be provided by setting the `DOCKER_HOST` environment variable.
@@ -96,7 +123,7 @@ docker run --rm v2tec/watchtower --help
 * `--schedule, -s` [Cron expression](https://godoc.org/github.com/robfig/cron#hdr-CRON_Expression_Format) in 6 fields (rather than the traditional 5) which defines when and how often to check for new images. Either `--interval` or the schedule expression could be defined, but not both. An example: `--schedule "0 0 4 * * *" ` 
 * `--no-pull` Do not pull new images. When this flag is specified, watchtower will not attempt to pull new images from the registry. Instead it will only monitor the local image cache for changes. Use this option if you are building new images directly on the Docker host without pushing them to a registry.
 * `--stop-timeout` Timeout before the container is forcefully stopped. When set, this option will change the default (`10s`) wait time to the given value. An example: `--stop-timeout 30s` will set the timeout to 30 seconds.
-* `--label-enable` Watch containers where the `com.centurylinklabs.watchtower.enable` label is set to true.
+* `--tag` Watch containers where the `de.whefter.watchtower.tag` label is set to this value.
 * `--cleanup` Remove old images after updating. When this flag is specified, watchtower will remove the old image after restarting a container with a new image. Use this option to prevent the accumulation of orphaned images on your system as containers are updated.
 * `--tlsverify` Use TLS when connecting to the Docker socket and verify the server's certificate.
 * `--debug` Enable debug mode. When this option is specified you'll see more verbose logging in the watchtower log file.
@@ -113,46 +140,18 @@ For example, imagine you were running a *mysql* container and a *wordpress* cont
 ## Stopping Containers
 
 When watchtower detects that a running container needs to be updated it will stop the container by sending it a SIGTERM signal.
-If your container should be shutdown with a different signal you can communicate this to watchtower by setting a label named *com.centurylinklabs.watchtower.stop-signal* with the value of the desired signal.
+If your container should be shutdown with a different signal you can communicate this to watchtower by setting a label named *de.whefter.watchtower.stop-signal* with the value of the desired signal.
 
 This label can be coded directly into your image by using the `LABEL` instruction in your Dockerfile:
 
 ```docker
-LABEL com.centurylinklabs.watchtower.stop-signal="SIGHUP"
+LABEL de.whefter.watchtower.stop-signal="SIGHUP"
 ```
 
 Or, it can be specified as part of the `docker run` command line:
 
 ```bash
-docker run -d --label=com.centurylinklabs.watchtower.stop-signal=SIGHUP someimage
-```
-
-## Selectively Watching Containers
-
-By default, watchtower will watch all containers. However, sometimes only some containers should be updated.
-
-If you need to exclude some containers, set the *com.centurylinklabs.watchtower.enable* label to `false`.
-
-```docker
-LABEL com.centurylinklabs.watchtower.enable="false"
-```
-
-Or, it can be specified as part of the `docker run` command line:
-
-```bash
-docker run -d --label=com.centurylinklabs.watchtower.enable=false someimage
-```
-
-If you need to only include only some containers, pass the --label-enable flag on startup and set the *com.centurylinklabs.watchtower.enable* label with a value of true for the containers you want to watch.
-
-```docker
-LABEL com.centurylinklabs.watchtower.enable="true"
-```
-
-Or, it can be specified as part of the `docker run` command line:
-
-```bash
-docker run -d --label=com.centurylinklabs.watchtower.enable=true someimage
+docker run -d --label=de.whefter.watchtower.stop-signal=SIGHUP --label=de.whefter.watchtower.tag=someservice someimage
 ```
 
 ## Remote Hosts
@@ -162,7 +161,8 @@ By default, watchtower is set-up to monitor the local Docker daemon (the same da
 ```bash
 docker run -d \
   --name watchtower \
-  v2tec/watchtower --host "tcp://10.0.1.2:2375"
+  --label=de.whefter.watchtower.tag=wordpress1
+  whefter/watchtower --tag wordpress1 --host "tcp://10.0.1.2:2375"
 ```
 
 or
@@ -171,7 +171,8 @@ or
 docker run -d \
   --name watchtower \
   -e DOCKER_HOST="tcp://10.0.1.2:2375" \
-  v2tec/watchtower
+  --label=de.whefter.watchtower.tag=wordpress1
+  whefter/watchtower --tag wordpress1
 ```
 
 Note in both of the examples above that it is unnecessary to mount the */var/run/docker.sock* into the watchtower container.
@@ -189,12 +190,18 @@ docker run -d \
   --name watchtower \
   -e DOCKER_HOST=$DOCKER_HOST \
   -v $DOCKER_CERT_PATH:/etc/ssl/docker \
-  v2tec/watchtower --tlsverify
+  --label=de.whefter.watchtower.tag=wordpress1
+  whefter/watchtower --tag wordpress1 --tlsverify
 ```
 
 ## Updating Watchtower
 
-If watchtower is monitoring the same Docker daemon under which the watchtower container itself is running (i.e. if you volume-mounted */var/run/docker.sock* into the watchtower container) then it has the ability to update itself. If a new version of the *v2tec/watchtower* image is pushed to the Docker Hub, your watchtower will pull down the new image and restart itself automatically.
+If watchtower is monitoring the same Docker daemon under which the watchtower 
+container itself is running (i.e. if you volume-mounted */var/run/docker.sock*
+into the watchtower container), and you gave that container the same tag
+it is set to watch, then it has the ability to update itself. If a 
+new version of the *whefter/watchtower* image is pushed to the Docker Hub, 
+your watchtower will pull down the new image and restart itself automatically.
 
 ## Notifications
 
@@ -233,7 +240,8 @@ docker run -d \
   -e WATCHTOWER_NOTIFICATION_EMAIL_SERVER=smtp.gmail.com \
   -e WATCHTOWER_NOTIFICATION_EMAIL_SERVER_USER=fromaddress@gmail.com \
   -e WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD=app_password \
-  v2tec/watchtower
+  --label=de.whefter.watchtower.tag=wordpress1
+  whefter/watchtower --tag wordpress1 
 ```
 
 ### Notifications through Slack webhook
@@ -253,7 +261,8 @@ docker run -d \
   -e WATCHTOWER_NOTIFICATIONS=slack \
   -e WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL="https://hooks.slack.com/services/xxx/yyyyyyyyyyyyyyy" \
   -e WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER=watchtower-server-1 \
-  v2tec/watchtower
+  --label=de.whefter.watchtower.tag=wordpress1
+  whefter/watchtower --tag wordpress1 
 ```
 
 ### Notifications via MSTeams incoming webhook
@@ -273,5 +282,6 @@ docker run -d \
   -e WATCHTOWER_NOTIFICATIONS=msteams \
   -e WATCHTOWER_NOTIFICATION_MSTEAMS_HOOK_URL="https://outlook.office.com/webhook/xxxxxxxx@xxxxxxx/IncomingWebhook/yyyyyyyy/zzzzzzzzzz" \
   -e WATCHTOWER_NOTIFICATION_MSTEAMS_USE_LOG_DATA=true \
-  v2tec/watchtower
+  --label=de.whefter.watchtower.tag=wordpress1
+  whefter/watchtower --tag wordpress1 
 ```
