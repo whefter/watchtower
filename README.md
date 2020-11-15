@@ -1,5 +1,11 @@
 # `whefter/watchtower`
 
+## **DEPRECATION NOTICE**
+
+The upstream repo `containrrr/watchtower` has now implemented the functionality
+this fork was originaly intended for (tags - called "scopes" there). It is recommended
+to switch to using the upstream version.
+
 [![Circle CI](https://circleci.com/gh/whefter/watchtower.svg?style=shield)](https://circleci.com/gh/whefter/watchtower)
 [![GoDoc](https://godoc.org/github.com/whefter/watchtower?status.svg)](https://godoc.org/github.com/whefter/watchtower)
 [![](https://images.microbadger.com/badges/image/whefter/watchtower.svg)](https://microbadger.com/images/whefter/watchtower "Get your own image badge on microbadger.com")
@@ -94,7 +100,7 @@ Watchtower has to be told which tag to monitor for on containers. This can be sp
 * either with the `--tag` commandline option
 * or the `WATCHTOWER_TAG` environment variable
 
-**Note** that the `watchtower` container itself **also** requires the `de.whefter.watchtower.tag` 
+**Note** that the `watchtower` container itself **also** requires the `de.whefter.watchtower.tag`
 label so that it can monitor itself.
 
 Also note that `watchtower` will detect if it is run twice (based on its tag) and kill all but the most
@@ -120,7 +126,7 @@ docker run --rm whefter/watchtower --help
 
 * `--host, -h` Docker daemon socket to connect to. Defaults to "unix:///var/run/docker.sock" but can be pointed at a remote Docker host by specifying a TCP endpoint as "tcp://hostname:port". The host value can also be provided by setting the `DOCKER_HOST` environment variable.
 * `--interval, -i` Poll interval (in seconds). This value controls how frequently watchtower will poll for new images. Defaults to 300 seconds (5 minutes).
-* `--schedule, -s` [Cron expression](https://godoc.org/github.com/robfig/cron#hdr-CRON_Expression_Format) in 6 fields (rather than the traditional 5) which defines when and how often to check for new images. Either `--interval` or the schedule expression could be defined, but not both. An example: `--schedule "0 0 4 * * *" ` 
+* `--schedule, -s` [Cron expression](https://godoc.org/github.com/robfig/cron#hdr-CRON_Expression_Format) in 6 fields (rather than the traditional 5) which defines when and how often to check for new images. Either `--interval` or the schedule expression could be defined, but not both. An example: `--schedule "0 0 4 * * *" `
 * `--no-pull` Do not pull new images. When this flag is specified, watchtower will not attempt to pull new images from the registry. Instead it will only monitor the local image cache for changes. Use this option if you are building new images directly on the Docker host without pushing them to a registry.
 * `--stop-timeout` Timeout before the container is forcefully stopped. When set, this option will change the default (`10s`) wait time to the given value. An example: `--stop-timeout 30s` will set the timeout to 30 seconds.
 * `--tag` Watch containers where the `de.whefter.watchtower.tag` label is set to this value.
@@ -196,11 +202,11 @@ docker run -d \
 
 ## Updating Watchtower
 
-If watchtower is monitoring the same Docker daemon under which the watchtower 
+If watchtower is monitoring the same Docker daemon under which the watchtower
 container itself is running (i.e. if you volume-mounted */var/run/docker.sock*
 into the watchtower container), and you gave that container the same tag
-it is set to watch, then it has the ability to update itself. If a 
-new version of the *whefter/watchtower* image is pushed to the Docker Hub, 
+it is set to watch, then it has the ability to update itself. If a
+new version of the *whefter/watchtower* image is pushed to the Docker Hub,
 your watchtower will pull down the new image and restart itself automatically.
 
 ## Notifications
@@ -241,7 +247,7 @@ docker run -d \
   -e WATCHTOWER_NOTIFICATION_EMAIL_SERVER_USER=fromaddress@gmail.com \
   -e WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD=app_password \
   --label=de.whefter.watchtower.tag=wordpress1
-  whefter/watchtower --tag wordpress1 
+  whefter/watchtower --tag wordpress1
 ```
 
 ### Notifications through Slack webhook
@@ -262,7 +268,7 @@ docker run -d \
   -e WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL="https://hooks.slack.com/services/xxx/yyyyyyyyyyyyyyy" \
   -e WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER=watchtower-server-1 \
   --label=de.whefter.watchtower.tag=wordpress1
-  whefter/watchtower --tag wordpress1 
+  whefter/watchtower --tag wordpress1
 ```
 
 ### Notifications via MSTeams incoming webhook
@@ -283,5 +289,5 @@ docker run -d \
   -e WATCHTOWER_NOTIFICATION_MSTEAMS_HOOK_URL="https://outlook.office.com/webhook/xxxxxxxx@xxxxxxx/IncomingWebhook/yyyyyyyy/zzzzzzzzzz" \
   -e WATCHTOWER_NOTIFICATION_MSTEAMS_USE_LOG_DATA=true \
   --label=de.whefter.watchtower.tag=wordpress1
-  whefter/watchtower --tag wordpress1 
+  whefter/watchtower --tag wordpress1
 ```
